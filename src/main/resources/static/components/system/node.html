@@ -1,0 +1,151 @@
+<div class="layui-card">
+    <div class="layui-card-header">
+        <h2 class="header-title">用户管理</h2>
+        <span class="layui-breadcrumb pull-right">
+          <a href="#!console">首页</a>
+          <a><cite>用户管理</cite></a>
+        </span>
+    </div>
+    <div class="layui-card-body">
+        <div class="layui-form toolbar">
+            <button id="node-btn-add" class="layui-btn icon-btn"><i class="layui-icon">&#xe654;</i>添加</button>
+        </div>
+        <table class="layui-table" id="node-table" lay-filter="node-table"></table>
+    </div>
+</div>
+
+<!-- 表单弹窗 -->
+<script type="text/html" id="node-model">
+    <form id="node-form" lay-filter="node-form" class="layui-form model-form">
+        <input name="value" type="hidden"/>
+        <div class="layui-form-item">
+            <label class="layui-form-label">菜单名称</label>
+            <div class="layui-input-block">
+                <input name="name" placeholder="请输入菜单名称" type="text" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">父级菜单</label>
+            <div class="layui-input-block">
+                <input name="parent" placeholder="请输入父级菜单ID（一级菜单父级ID为0）" type="number" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">菜单类型</label>
+            <div class="layui-input-block">
+                <input name="type" placeholder="一级：1，二级：2，三级：3" type="number" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
+        <div class="layui-form-item model-form-footer">
+            <button class="layui-btn layui-btn-primary close" type="button">取消</button>
+            <button class="layui-btn" lay-filter="node-form-submit" lay-submit>保存</button>
+        </div>
+    </form>
+</script>
+
+<!-- 表格操作列 -->
+<script type="text/html" id="node-table-bar">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="edit">修改</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+
+<script>
+    layui.use(['form', 'table', 'util', 'config', 'admin'], function () {
+        var form = layui.form;
+        var table = layui.table;
+        var config = layui.config;
+        var layer = layui.layer;
+        var admin = layui.admin;
+
+        // 渲染表格
+        table.render({
+            elem: '#node-table',
+            url: config.base_server + 'node/query',
+            method: 'post',
+            where: {
+                access_token: config.getToken().access_token
+            },
+            page: true,
+            cols: [[
+                {field: 'value', title: 'ID'},
+                {field: 'name', sort: true, title: '名称'},
+                {field: 'parent', sort: true, title: '父节点ID'},
+                {field: 'type', sort: true, title: '节点级别'},
+                {align: 'center', toolbar: '#node-table-bar', title: '操作'}
+            ]]
+        });
+        
+        // 添加按钮点击事件
+        $('#node-btn-add').click(function () {
+            showEditModel();
+        });
+
+        // 表单提交事件
+        form.on('submit(node-form-submit)', function (data) {
+            layer.load(2);
+            admin.req('node', data.field, function (data) {
+                layer.closeAll('loading');
+                if (data.code == 200) {
+                    layer.msg(data.msg, {icon: 1});
+                    table.reload('node-table');
+                    layer.closeAll('page');
+                } else {
+                    layer.msg(data.msg, {icon: 2});
+                }
+            }, $('#node-form').attr('method'));
+            return false;
+        });
+
+        // 工具条点击事件
+        table.on('tool(node-table)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'edit') { //修改
+                showEditModel(data);
+            } else if (obj.event === 'del') { //删除
+                doDelete(obj);
+            }
+        });
+
+        // 显示编辑弹窗
+        var showEditModel = function (data) {
+            layer.open({
+                type: 1,
+                title: data ? '修改' : '添加',
+                area: '450px',
+                offset: '120px',
+                content: $('#node-model').html(),
+                success: function () {
+                    $('#node-form')[0].reset();
+                    $('#node-form').attr('method', 'POST');
+                    if (data) {
+                        form.val('node-form', data);
+                        $('#node-form').attr('method', 'PUT');
+                    }
+                    $('#node-form .close').click(function () {
+                        layer.closeAll('page');
+                    });
+                }
+            });
+        };
+
+        // 删除
+        var doDelete = function (obj) {
+            layer.confirm('确定要删除吗？', function (i) {
+                layer.close(i);
+                layer.load(2);
+                admin.req('node/' + obj.data.value, {}, function (data) {
+                    layer.closeAll('loading');
+                    if (data.code == 200) {
+                        layer.msg(data.msg, {icon: 1});
+                        obj.del();
+                    } else {
+                        layer.msg(data.msg, {icon: 2});
+                    }
+                }, 'DELETE');
+            });
+        };
+    });
+</script>

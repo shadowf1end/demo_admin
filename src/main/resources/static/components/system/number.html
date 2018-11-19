@@ -1,0 +1,138 @@
+<div class="layui-card">
+    <div class="layui-card-header">
+        <h2 class="header-title">用户管理</h2>
+        <span class="layui-breadcrumb pull-right">
+          <a href="#!console">首页</a>
+          <a><cite>用户管理</cite></a>
+        </span>
+    </div>
+    <div class="layui-card-body">
+        <table class="layui-table" id="number-table" lay-filter="number-table"></table>
+    </div>
+</div>
+
+<!-- 表单弹窗 -->
+<script type="text/html" id="number-model">
+    <form id="number-form" lay-filter="number-form" class="layui-form model-form">
+        <input name="id" type="hidden"/>
+        <div class="layui-form-item">
+            <label class="layui-form-label">文件数量</label>
+            <div class="layui-input-block">
+                <input name="docNum" placeholder="请输入文件数量" type="number" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">下载量</label>
+            <div class="layui-input-block">
+                <input name="downloadNum" placeholder="请输入下载量" type="number" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">初始下载量</label>
+            <div class="layui-input-block">
+                <input name="initDownloadNum" placeholder="请输入初始下载量" type="number" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">初始文件数量</label>
+            <div class="layui-input-block">
+                <input name="initDocNum" placeholder="请输入初始文件数量" type="number" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">每次分享获得积分</label>
+            <div class="layui-input-block">
+                <input name="sharePoint" placeholder="请输入积分" type="number" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
+        <div class="layui-form-item model-form-footer">
+            <button class="layui-btn layui-btn-primary close" type="button">取消</button>
+            <button class="layui-btn" lay-filter="number-form-submit" lay-submit>保存</button>
+        </div>
+    </form>
+</script>
+
+<!-- 表格操作列 -->
+<script type="text/html" id="number-table-bar">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="edit">修改</a>
+</script>
+
+<script>
+    layui.use(['form', 'table', 'util', 'config', 'admin'], function () {
+        var form = layui.form;
+        var table = layui.table;
+        var config = layui.config;
+        var layer = layui.layer;
+        var admin = layui.admin;
+
+        // 渲染表格
+        table.render({
+            elem: '#number-table',
+            url: config.base_server + 'number/query',
+            method: 'post',
+            where: {
+                access_token: config.getToken().access_token
+            },
+            page: true,
+            cols: [[
+                {field: 'docNum', title: '文件总数'},
+                {field: 'downloadNum', sort: true, title: '下载总数'},
+                {field: 'initDocNum', sort: true, title: '初始文件数'},
+                {field: 'initDownloadNum', sort: true, title: '初始下载量'},
+                {field: 'sharePoint', sort: true, title: '单次分享获得积分'},
+                {align: 'center', toolbar: '#number-table-bar', title: '操作'}
+            ]]
+        });
+
+        // 表单提交事件
+        form.on('submit(number-form-submit)', function (data) {
+            layer.load(2);
+            admin.req('number', data.field, function (data) {
+                layer.closeAll('loading');
+                if (data.code == 200) {
+                    layer.msg(data.msg, {icon: 1});
+                    table.reload('number-table');
+                    layer.closeAll('page');
+                } else {
+                    layer.msg(data.msg, {icon: 2});
+                }
+            }, $('#number-form').attr('method'));
+            return false;
+        });
+
+        // 工具条点击事件
+        table.on('tool(number-table)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'edit') { //修改
+                showEditModel(data);
+            } else if (obj.event === 'del') { //删除
+                doDelete(obj);
+            }
+        });
+
+        // 显示编辑弹窗
+        var showEditModel = function (data) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: '450px',
+                offset: '120px',
+                content: $('#number-model').html(),
+                success: function () {
+                    $('#number-form')[0].reset();
+                    $('#number-form').attr('method', 'POST');
+                    form.val('number-form', data);
+                    $('#number-form').attr('method', 'PUT');
+                    $('#number-form .close').click(function () {
+                        layer.closeAll('page');
+                    });
+                }
+            });
+        };
+    });
+</script>

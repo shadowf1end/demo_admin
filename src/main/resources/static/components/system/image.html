@@ -1,0 +1,161 @@
+<div class="layui-card">
+    <div class="layui-card-header">
+        <h2 class="header-title">图片管理</h2>
+        <span class="layui-breadcrumb pull-right">
+          <a href="#!home_console">首页</a>
+          <a><cite>图片管理</cite></a>
+        </span>
+    </div>
+    <div class="layui-card-body">
+        <div class="layui-form toolbar">
+            <button id="img-btn-add" class="layui-btn icon-btn"><i
+                    class="layui-icon">&#xe654;</i>添加
+            </button>
+        </div>
+
+        <table class="layui-table" id="img-table" lay-filter="img-table"></table>
+    </div>
+</div>
+
+<!-- 表单弹窗 -->
+<script type="text/html" id="img-model">
+    <form id="img-form" lay-filter="img-form" class="layui-form model-form">
+        <input name="id" id="id" type="hidden"/>
+        <div class="layui-upload-drag" id="upload"
+             style="margin-left: 45px; display: flex; align-items: center; flex-direction: column;">
+            <i class="layui-icon"></i>
+            <p>点击上传，或将文件拖拽到此处</p>
+            <img class="layui-upload-img" id="demo" style="width: 100%; height: 151px">
+        </div>
+        <br/>
+        <div class="layui-form-item model-form-footer">
+            <button class="layui-btn layui-btn-primary close" type="button">取消</button>
+            <button class="layui-btn" id="upload-btn" type="button">保存</button>
+        </div>
+    </form>
+</script>
+
+<!-- 表格操作列 -->
+<script type="text/html" id="img-table-bar">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="edit">修改</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+
+<script>
+    var showImg = function () {
+        layer.photos({
+            photos: '.layer-photos',
+            anim: 5
+        });
+    };
+
+    layui.use(['form', 'table', 'upload'], function () {
+            var table = layui.table;
+            var form = layui.form;
+            var upload = layui.upload;
+
+            // 渲染表格
+            table.render({
+                elem: '#img-table',
+                url: '/image/list',
+                page: true,
+                cols: [[
+                    {type: 'numbers'},
+                    {
+                        field: 'img',
+                        title: '预览（点击查看大图）',
+                        templet: function (d) {
+                            return '<div class="layer-photos" onclick="showImg()" style="cursor:pointer;"><img src="' + d.img + '"></div>';
+                        }
+                        // templet: '<div><img src="{{d.imgUrl}}"></div>'
+                    },
+                    {field: 'img', title: '图片链接'},
+                    {align: 'center', toolbar: '#img-table-bar', title: '操作'}
+                ]]
+            });
+
+            //选完文件后不自动上传
+            var uploadImg = function () {
+                upload.render({
+                    elem: '#upload',
+                    url: '/image/upload/',
+                    auto: false,
+                    data: {
+                        imgId: function () {
+                            return $('#id').val();
+                        }
+                    },
+                    accept: 'images',
+                    acceptMime: 'image/*',
+                    bindAction: '#upload-btn',
+                    choose: function (obj) {
+                        //预读本地文件示例，不支持ie8
+                        obj.preview(function (index, file, result) {
+                            $('#demo').attr('src', result); //图片链接（base64）
+                        });
+                    },
+                    done: function (res) {
+                        if (res.code == 200) {
+                            layer.closeAll('page');
+                            layer.msg(res.msg, {icon: 1});
+                            table.reload('img-table');
+                        } else {
+                            layer.msg(res.msg, {icon: 2});
+                        }
+                    },
+                })
+            };
+
+            // 添加按钮点击事件
+            $('#img-btn-add').click(function (data) {
+                    showEditModel(data);
+            });
+
+            // 工具条点击事件
+            table.on('tool(img-table)', function (obj) {
+                var data = obj.data;
+                var layEvent = obj.event;
+                if (layEvent === 'edit') { // 修改
+                    showEditModel(data);
+                } else if (layEvent === 'del') { // 删除
+                    layer.confirm('确定删除吗？', function (i) {
+                        layer.close(i);
+                        layer.load(2);
+                        $.post('/image/delete', {
+                            id: obj.data.id
+                        }, function (data) {
+                            layer.closeAll('loading');
+                            if (data["code"] == 200) {
+                                layer.msg(data["msg"], {icon: 1});
+                                table.reload('img-table');
+                            } else {
+                                layer.msg(data.msg, {icon: 2});
+                            }
+                        });
+                    });
+                }
+            });
+
+            // 显示编辑弹窗
+            var showEditModel = function (data) {
+                layer.open({
+                    type: 1,
+                    title: data.imgId ? '修改' : '添加',
+                    area: '450px',
+                    offset: '120px',
+                    content: $('#img-model').html(),
+                    success: function () {
+                        $('#img-form')[0].reset();
+                        if (data) {
+                            form.val('img-form', data);
+                        }
+                        $('#img-form .close').click(function () {
+                            layer.closeAll('page');
+                        });
+                    }
+                });
+                uploadImg();
+            };
+        }
+    );
+</script>
