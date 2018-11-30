@@ -18,6 +18,15 @@ public class Number {
     @TableField("initial_document_number")
     private Long initDocNum;
     private Integer sharePoint;
+    private Integer downloadPoint;
+
+    public Integer getDownloadPoint() {
+        return downloadPoint;
+    }
+
+    public void setDownloadPoint(Integer downloadPoint) {
+        this.downloadPoint = downloadPoint;
+    }
 
     public Integer getId() {
         return id;

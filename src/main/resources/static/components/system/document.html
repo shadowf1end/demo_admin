@@ -9,6 +9,10 @@
     <div class="layui-card-body">
         <div class="layui-form toolbar">
             <button id="document-btn-add" class="layui-btn icon-btn"><i class="layui-icon">&#xe654;</i>添加</button>
+            <button id="document-btn-upload" class="layui-btn icon-btn"><i class="layui-icon">&#xe654;</i>批量上传</button>
+            <input name="value" id="value" placeholder="输入所属菜单ID" type="number" class="layui-input search-input"
+                   maxlength="20"
+                   lay-verify="required" required/>
         </div>
         <table class="layui-table" id="document-table" lay-filter="document-table"></table>
     </div>
@@ -59,13 +63,35 @@
     <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
 </script>
 
+<script type="text/html" id="upload-model">
+    <br>
+    <div class="layui-upload">
+        &nbsp;&nbsp;<button type="button" class="layui-btn layui-btn-normal" id="testList">选择多文件</button>
+        <div class="layui-upload-list">
+            <table class="layui-table">
+                <thead>
+                <tr>
+                    <th>文件名</th>
+                    <th>大小</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody id="demoList"></tbody>
+            </table>
+        </div>
+        &nbsp;&nbsp;<button type="button" class="layui-btn" id="testListAction">开始上传</button>
+    </div>
+</script>
+
 <script>
-    layui.use(['form', 'table', 'util', 'config', 'admin'], function () {
+    layui.use(['form', 'table', 'util', 'config', 'upload', 'admin'], function () {
         var form = layui.form;
         var table = layui.table;
         var config = layui.config;
         var layer = layui.layer;
         var admin = layui.admin;
+        var upload = layui.upload;
 
         // 渲染表格
         table.render({
@@ -85,7 +111,7 @@
                 {align: 'center', toolbar: '#document-table-bar', title: '操作'}
             ]]
         });
-        
+
         // 添加按钮点击事件
         $('#document-btn-add').click(function () {
             showEditModel();
@@ -153,6 +179,86 @@
                         layer.msg(data.msg, {icon: 2});
                     }
                 }, 'DELETE');
+            });
+        };
+
+        // 添加按钮点击事件
+        $('#document-btn-upload').click(function (data) {
+            showUploadModel(data);
+        });
+
+        var showUploadModel = function () {
+            var value = $('#value').val();
+            if (value == null || value === '') {
+                layer.msg('请先输入所属菜单ID', {icon: 2});
+                return;
+            }
+            layer.open({
+                type: 1,
+                title: '批量上传',
+                area: ['900px', '500px'],
+                offset: '120px',
+                content: $('#upload-model').html(),
+                success: function () {
+                    $('#upload-model .close').click(function () {
+                        layer.closeAll('page');
+                    });
+                    var demoListView = $('#demoList');
+                    var uploadListIns = upload.render({
+                        elem: '#testList',
+                        url: config.base_server + 'document/upload/',
+                        accept: 'file',
+                        multiple: true,
+                        auto: false,
+                        data: {value: value},
+                        bindAction: '#testListAction',
+                        choose: function (obj) {
+                            var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
+                            //读取本地文件
+                            obj.preview(function (index, file, result) {
+                                var tr = $(['<tr id="upload-' + index + '">'
+                                    , '<td>' + file.name + '</td>'
+                                    , '<td>' + (file.size / 1014).toFixed(1) + 'kb</td>'
+                                    , '<td>等待上传</td>'
+                                    , '<td>'
+                                    , '<button class="layui-btn layui-btn-xs demo-reload layui-hide">重传</button>'
+                                    , '<button class="layui-btn layui-btn-xs layui-btn-danger demo-delete">删除</button>'
+                                    , '</td>'
+                                    , '</tr>'].join(''));
+
+                                //单个重传
+                                tr.find('.demo-reload').on('click', function () {
+                                    obj.upload(index, file);
+                                });
+
+                                //删除
+                                tr.find('.demo-delete').on('click', function () {
+                                    delete files[index]; //删除对应的文件
+                                    tr.remove();
+                                    uploadListIns.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
+                                });
+
+                                demoListView.append(tr);
+                            });
+                        }
+                        , done: function (res, index, upload) {
+                            if (res.code == 200) { //上传成功
+                                var tr = demoListView.find('tr#upload-' + index)
+                                    , tds = tr.children();
+                                tds.eq(2).html('<span style="color: #5FB878;">上传成功</span>');
+                                tds.eq(3).html(''); //清空操作
+                                return delete this.files[index]; //删除文件队列已经上传成功的文件
+                            }
+                            this.error(index, upload);
+                        }
+                        , error: function (index, upload) {
+                            var tr = demoListView.find('tr#upload-' + index)
+                                , tds = tr.children();
+                            tds.eq(2).html('<span style="color: #FF5722;">上传失败</span>');
+                            tds.eq(3).find('.demo-reload').removeClass('layui-hide'); //显示重传
+                        }
+                    });
+                }
             });
         };
     });

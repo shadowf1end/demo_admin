@@ -50,6 +50,13 @@
                        lay-verify="required" required/>
             </div>
         </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">每次下载扣除积分</label>
+            <div class="layui-input-block">
+                <input name="downloadPoint" placeholder="请输入积分" type="number" class="layui-input" maxlength="20"
+                       lay-verify="required" required/>
+            </div>
+        </div>
         <div class="layui-form-item model-form-footer">
             <button class="layui-btn layui-btn-primary close" type="button">取消</button>
             <button class="layui-btn" lay-filter="number-form-submit" lay-submit>保存</button>
@@ -85,6 +92,7 @@
                 {field: 'initDocNum', sort: true, title: '初始文件数'},
                 {field: 'initDownloadNum', sort: true, title: '初始下载量'},
                 {field: 'sharePoint', sort: true, title: '单次分享获得积分'},
+                {field: 'downloadPoint', sort: true, title: '单次下载扣除积分'},
                 {align: 'center', toolbar: '#number-table-bar', title: '操作'}
             ]]
         });

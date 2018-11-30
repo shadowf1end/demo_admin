@@ -80,7 +80,7 @@ layui.define(function (exports) {
                 name: '图片设置',
                 url: 'image',
                 path: 'system/image.html',
-                auth: 'post:/image/list'
+                auth: 'get:/image/list'
             }, {
                 name: '文档管理',
                 url: 'document',

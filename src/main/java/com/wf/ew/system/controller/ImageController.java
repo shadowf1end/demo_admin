@@ -32,7 +32,6 @@ public class ImageController {
 
     @RequestMapping("/upload")
     public JsonResult upload(@RequestParam MultipartFile file, @RequestParam(required = false) Integer imgId, HttpServletRequest request) throws IOException {
-        System.out.println(request == null);
         String imgUrl = uploadImg(file, request);
         Image image = new Image();
         image.setImg(imgUrl);
